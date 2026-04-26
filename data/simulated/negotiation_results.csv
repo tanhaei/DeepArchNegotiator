@@ -1,0 +1,7 @@
+variant,agreement,rounds,nash,final_hard_violations,adoption
+MedNegotiator-only,85%,6.2,0.42,3,75%
+LLM-only,65%,4.5,0.25,12,45%
+No GNN oracle,78%,5.8,0.35,5,68%
+No guard,92%,4.1,0.48,18,50%
+No counterproposal,55%,8.5,0.28,0,60%
+DeepArchNegotiator,88%,7.1,0.45,0,85%

@@ -1,0 +1,1226 @@
+\documentclass[english,preprint,nonatbib]{elsarticle}
+
+\usepackage{geometry}
+\geometry{a4paper, margin=0.7in}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{url}
+
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\Rset}{\mathcal{R}}
+\newcommand{\Cset}{\mathcal{C}}
+\newcommand{\Gcode}{\mathcal{G}_{code}}
+\newcommand{\Garch}{\mathcal{G}_{arch}}
+\newcommand{\Greq}{\mathcal{G}_{req}}
+\newcommand{\Ghet}{\mathcal{G}_{het}}
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\utility}{\mathcal{U}}
+\newcommand{\costarch}{\widehat{C}_{arch}}
+
+\lstdefinestyle{pseudocode}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  showstringspaces=false,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray}
+}
+\lstset{style=pseudocode}
+
+\journal{Journal of Systems and Software} 
+
+
+\begin{document}
+\begin{frontmatter}
+
+\title{\textbf{Stakeholder-Aware Software Architecture Refactoring via Graph Neural Modularization and Multi-Agent Requirements Negotiation}}
+
+\author{Mohammad Tanhaei\corref{mycorrespondingauthor}}
+\address{Department of Engineering, Ilam University, Ilam, Iran}
+\cortext[mycorrespondingauthor]{Corresponding author email: m.tanhaei@ilam.ac.ir}
+
+\begin{abstract}
+Software architecture refactoring is rarely a purely structural optimization problem.
+In long-lived healthcare systems, architecture boundaries are shaped not only by call graphs, cohesion, and coupling, but also by clinical safety, regulatory constraints, privacy rules, operational latency, migration cost, and stakeholder priorities.
+Recent work represented by \emph{DeepModule} demonstrates that semantic-aware graph neural networks can recover modular boundaries from source-code dependency graphs, while \emph{MedNegotiator} demonstrates that persona-driven large-language-model agents, QFD/Kano utility modeling, Nash bargaining, and consistency guards can automate healthcare requirements negotiation.
+Yet these two lines remain disconnected: neural modularization usually optimizes code structure without stakeholder value, whereas automated negotiation usually reasons over requirements without grounding its trade-offs in the implemented architecture.
+This paper proposes \emph{DeepArchNegotiator}, a stakeholder-aware software architecture refactoring framework that closes this loop.
+The framework builds a heterogeneous requirement--architecture--code graph, encodes source-code structure with a semantic graph attention network, maps requirements to affected modules through traceability links, and embeds the predicted architectural impact of each requirement into a multi-agent negotiation protocol.
+Technical utility is no longer a static cost estimate; it includes a predictive architecture-impact term estimated by a GNN over the current code and design graph.
+Clinical, technical, security, DevOps, regulatory, and product agents negotiate candidate refactoring and requirement-scoping decisions under a Nash bargaining objective, while an Architecture Consistency Guard rejects proposals that violate safety, privacy, behavioral-preservation, or regulatory invariants.
+The system produces not only clusters, but also refactoring-aware counterproposals, Architecture Decision Records, test obligations, and migration plans.
+We formalize the model, present algorithms, and define an evaluation protocol using open-source Java systems and a healthcare-inspired BioArc integration case.
+In a controlled BioArc simulation, direct database integration is flagged as a +42\% coupling-risk scenario; the negotiated gateway/event design reduces the accepted alternative to +8\% coupling, avoids the +120 ms all-synchronous latency-risk path, and reaches an 85\% simulated stakeholder adoption rate.
+The contribution is a framework-level shift from structure-only modularization and text-only requirements negotiation toward negotiated, value-aware, architecture-safe software evolution.
+\end{abstract}
+
+\begin{keyword}
+software architecture refactoring\sep graph neural networks\sep requirements negotiation\sep multi-agent systems\sep healthcare software\sep Nash bargaining\sep technical debt\sep microservice decomposition\sep traceability\sep large language models
+\end{keyword}
+
+\end{frontmatter}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Software systems evolve because organizations evolve. New products, regulatory obligations, clinical workflows, security controls, reimbursement processes, and integration needs continue to arrive after the original architecture has already solidified.
+The result is often architectural erosion: dependency structures drift away from intended design boundaries;
+formerly cohesive modules become tangled with unrelated responsibilities; and local feature delivery gradually produces global technical debt.
+Classic observations on software evolution and technical debt frame this phenomenon as a normal consequence of long-term maintenance rather than as an exceptional failure \cite{lehman1980evolution,cunningham1992debt,seacord2003modernizing}.
+In healthcare software, the cost of this erosion is amplified because architectural shortcuts may affect patient safety, privacy, auditability, clinical latency, and regulatory compliance.
+Architectural refactoring has traditionally been formulated as a graph optimization or clustering problem.
+A codebase is represented as a structural dependency graph; nodes denote classes, packages, or services;
+edges denote calls, inheritance, data access, or build-time dependencies; and clustering methods attempt to maximize cohesion while minimizing coupling.
+Early techniques such as ACDC and WCA established useful comprehension-oriented and hierarchical baselines \cite{tzerpos2000acdc,maqbool2004wca}.
+Search-based software engineering later framed modularization as a single- or multi-objective search task \cite{harman2012sbse,mitchell2006bunch,praditwong2011moduleclustering}.
+More recently, graph neural networks and pretrained code models have opened the possibility of learning modularization patterns that combine structural dependencies with semantic signals from identifiers, comments, and code tokens \cite{velickovic2018gat,feng2020codebert,guo2020graphcodebert,zhou2020gnnreview}.
+DeepModule follows this direction by combining CodeBERT-like semantic embeddings with a Graph Attention Network (GAT), soft clustering, directed modularity loss, semantic coherence, and cluster-balance regularization \cite{tanhaei2026deepmodule}.
+However, architecture is not only a property of code. It is also a negotiated social and organizational artifact.
+A proposed module split may score well under MoJoFM or modularity quality but still be rejected by architects because it violates a regulatory boundary, creates a dangerous data-flow path, disrupts an operational team boundary, or makes a clinically essential workflow too slow.
+Conversely, a clinically valuable requirement may appear acceptable in a requirements meeting but quietly push the codebase toward a ``Big Ball of Mud'' by increasing cross-module calls and shared database dependencies.
+This is the central gap addressed in this paper: architectural refactoring and requirements negotiation are usually treated as separate phases, even though they continuously shape each other.
+MedNegotiator offers the complementary half of the puzzle.
+It presents a multi-agent requirements negotiation framework for healthcare systems, using persona-driven LLM agents, QFD/Kano-derived utilities, Nash bargaining, RAG grounding, semantic anchoring, and a Consistency Guard to enforce safety-critical constraints \cite{tanhaei2026mednegotiator}.
+MedNegotiator demonstrates how clinical and technical perspectives can negotiate over utility functions and produce Pareto-efficient requirement agreements.
+Yet its technical utility is still mostly a negotiated estimate rather than a learned prediction from the current code architecture.
+It can say that a requirement is costly or risky, but it does not directly ask a semantic GNN how that requirement will alter coupling, cohesion, modularity, change impact, or migration risk.
+\textbf{DeepArchNegotiator} integrates these two lines. The core idea is simple but consequential: put an architecture-impact oracle inside the requirements negotiation loop.
+When a stakeholder proposes a new requirement, the system does not only score clinical value and implementation effort.
+It also queries a GNN over a heterogeneous requirement--architecture--code graph to estimate the architectural impact of accepting that requirement.
+This predicted impact enters the Technical Agent's utility function and the Nash bargaining objective.
+If a requirement is clinically valuable but architecture-eroding, the system can generate refactoring-aware counterproposals: split the requirement, introduce a gateway, move a boundary, add a consent service, create an event-driven integration, or require a preliminary refactoring before acceptance.
+This paper develops DeepArchNegotiator as a unified framework that connects neural modularization, stakeholder utility modeling, guarded negotiation, and architecture-decision artifact generation.
+
+\subsection{Motivating Scenario: BioArc and Cross-System Healthcare Evolution}
+\label{sec:bioarc-motivation}
+
+Consider a healthcare ecosystem in which an independent appointment and telemedicine product, such as a Biovisit-like system, must exchange data with a broader electronic health record platform such as BioArc.
+The clinical request is reasonable: clinicians want unified patient identity, access to medication history during teleconsultation, consent-aware sharing of encounter summaries, and drug-drug interaction (DDI) checks when prescriptions are created.
+From a requirements perspective, the feature has high clinical value.
+From an architectural perspective, direct database sharing or ad hoc synchronous integration can create dangerous coupling among appointment scheduling, patient identity, consent, medication, billing, and audit modules.
+A text-only negotiation system may propose a compromise such as ``integrate with BioArc through APIs.'' A structure-only modularization system may recommend clusters after code already exists.
+DeepArchNegotiator instead asks earlier and more concretely: which services and classes will be affected, how will dependencies change, what privacy boundaries become crossed, and what counter-architecture minimizes harm while preserving clinical value?
+In the controlled BioArc scenario, the negotiated result is not direct integration, but a Patient Identity Gateway, a Consent Boundary, an event/API layer, a tiered DDI service, and explicit audit obligations.
+Figure~\ref{fig:bioarc-flow} illustrates this scenario as a refactoring-aware integration pattern.
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.45\linewidth]{bioarc_integration_flow.pdf}
+  \caption{BioArc integration scenario. In the controlled simulation, the negotiated gateway/event design avoids the direct-access alternative's +42\% predicted coupling increase and the all-synchronous alternative's +120 ms latency-risk path, while reaching an 85\% simulated stakeholder adoption rate.}
+  \label{fig:bioarc-flow}
+\end{figure}
+
+
+
+\subsection{Research Gap}
+\label{sec:gap}
+
+The gap is not that GNNs, LLM agents, QFD, Nash bargaining, or consistency guards are unknown.
+The gap is that their usual integration direction is incomplete.
+Neural architecture refactoring optimizes structural and semantic code metrics but rarely treats stakeholder values as first-class optimization variables.
+Automated requirements negotiation optimizes agreement and feasibility but rarely grounds technical cost in learned predictions over the actual architecture graph.
+DeepArchNegotiator treats these as one coupled problem: requirements change the architecture, architecture constrains requirements, and the negotiation process reasons over both.
+This coupled view matters for healthcare because many requirements are cross-cutting.
+Consent, audit logging, DDI checking, patient identity, imaging data retention, and clinical dashboarding affect multiple modules at once.
+A requirement can be locally valuable yet globally architecture-eroding. A purely clinical utility function may over-accept it;
+a purely technical utility function may over-reject it; and a purely structural modularization model may only see the damage after the fact.
+A stakeholder-aware architecture-impact model lets the negotiation process produce a third kind of answer: accept the value, reject the unsafe shape, and propose a refactoring-safe design.
+
+\subsection{Contributions}
+\label{sec:contributions}
+
+This paper makes the following contributions:
+
+\begin{enumerate}[label=C\arabic*:,leftmargin=2.2em]
+  \item \textbf{Stakeholder-aware architectural refactoring formulation.} We define architecture refactoring as a negotiation problem over code structure, requirement value, constraints, and migration cost, rather than as clustering alone.
+  \item \textbf{Heterogeneous requirement--architecture--code graph.} We introduce a graph schema linking requirements, modules, classes, APIs, database entities, constraints, agents, ADRs, and tests.
+This graph supports both GNN-based impact prediction and traceability-based explanation.
+  \item \textbf{Predictive architecture utility.} We extend the Technical Agent's utility with a GNN-estimated architecture-impact term, including predicted changes in coupling, cohesion, modularity, change impact, behavior-preservation risk, and migration risk.
+  \item \textbf{Nash bargaining with architecture impact.} We incorporate predicted architecture impact into multi-stakeholder Nash bargaining so that clinically valuable but architecture-eroding requirements trigger counterproposals rather than blind acceptance or rejection.
+  \item \textbf{Architecture Consistency Guard.} We generalize the MedNegotiator Consistency Guard into an architecture-aware guard that rejects proposals violating privacy, safety, data-boundary, regulatory, or behavioral-preservation invariants.
+  \item \textbf{Controlled BioArc simulation and evaluation protocol.} We present a healthcare integration scenario, simulated negotiation outcomes, and an evaluation protocol with baselines, metrics, ablations, and statistical tests.
+\end{enumerate}
+
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{Requirements Engineering and Healthcare Negotiation}
+
+Requirements engineering is a central activity in software development because defects in requirements propagate into design, implementation, testing, and operation \cite{sommerville2005re,cheng2007future}.
+Traceability is especially important when requirements and architecture co-evolve, because stakeholders need to know which code elements, services, tests, and constraints are affected by a requirement change \cite{gotel1994traceability}.
+Healthcare adds a wicked-problem dimension: stakeholders hold incomplete, evolving, and sometimes conflicting views; regulatory constraints are non-negotiable;
+and clinical safety can dominate standard cost-benefit trade-offs \cite{rittel1973wicked}.
+
+MedNegotiator addresses this problem by creating persona-driven LLM agents that simulate clinical and technical perspectives, quantify value with QFD/Kano-derived utilities, and resolve conflicts through Nash bargaining under hard guardrails \cite{tanhaei2026mednegotiator}.
+Its key insight is that requirements negotiation is more useful when it is value-aware and safety-constrained, rather than merely a meeting transcript.
+DeepArchNegotiator inherits that insight, but replaces static technical cost with a learned architecture-impact signal.
+Kano-inspired classification helps distinguish must-be, performance, and attractive requirements. In healthcare, Kano categories can shift as regulations, clinical expectations, and technological baselines evolve.
+The literature on Kano in healthcare supports the idea that structured value classification can be useful in dynamic care contexts \cite{materla2019kano}, while product-quality work shows that delighters and must-be features have different satisfaction curves \cite{matzler1996delight}.
+In DeepArchNegotiator, Kano/QFD values are not sufficient by themselves; they are combined with architecture-impact estimates to avoid accepting high-value requirements in architecture-damaging forms.
+
+\subsection{Automated Negotiation and Nash Bargaining}
+
+Nash bargaining provides a classical cooperative solution concept for selecting Pareto-efficient agreements under disagreement points \cite{nash1950bargaining}.
+Rubinstein's alternating-offers model adds a strategic temporal structure to negotiation \cite{rubinstein1982perfect}.
+Modern automated negotiation research defines agents, preferences, concession strategies, and protocols for reaching agreements under incomplete or conflicting objectives \cite{fatima2014automated,faratin1998negotiation}.
+Argumentation-based negotiation emphasizes reasons, objections, and justifications, which is important in domains where explainability matters \cite{rahwan2003argumentation,parsons1998arguing}.
+DeepArchNegotiator uses Nash bargaining as an optimization layer, but preserves structured reason exchange. Agents do not merely optimize scalar utilities;
+they also explain why a requirement or refactoring is accepted, rejected, split, delayed, or guarded.
+This is crucial for architecture decision records, where future maintainers need to understand the rationale for a boundary or migration plan.
+
+\subsection{Architecture Refactoring, Modularity, and Technical Debt}
+
+Technical debt and architecture erosion are long-standing concerns in software evolution \cite{cunningham1992debt,lehman1980evolution}.
+Coupling and cohesion metrics provide a measurement basis for modularity \cite{briand1999coupling}.
+Traditional clustering algorithms such as ACDC and WCA use structural dependencies to recover subsystems \cite{tzerpos2000acdc,maqbool2004wca}.
+Search-based approaches such as Bunch and NSGA-II optimize modularization quality and multi-objective trade-offs \cite{mitchell2006bunch,praditwong2011moduleclustering,harman2012sbse}.
+Extract-class and smell-focused refactoring research further shows that semantic and structural signals can improve automated recommendations \cite{bavota2014extractclass,abid2020refactoringreview}.
+DeepModule advances this area by using semantic embeddings and GAT-based graph learning to generate architecture modularization recommendations \cite{tanhaei2026deepmodule}.
+Its design is relevant because it explicitly combines directed modularity, semantic coherence, and cluster balance.
+DeepArchNegotiator adopts this neural modularization layer but changes its role: the GNN is not only a refactoring recommender after requirements are fixed;
+it becomes an architecture-impact oracle during requirements negotiation.
+
+\subsection{Graph Neural Networks and Code Representations}
+
+Software is naturally graph-structured.
+Calls, inheritance, imports, data flow, package dependencies, database access, and API contracts create multi-relational graphs.
+GNNs are therefore attractive for software engineering tasks \cite{zhou2020gnnreview}. Graph Attention Networks learn attention weights over neighborhoods and can prioritize dependencies differently across nodes \cite{velickovic2018gat}.
+GraphSAGE-style sampling supports inductive and scalable graph learning \cite{hamilton2017graphsage}. Directed modularity formalizes community detection in directed networks, an important property for call and dependency graphs \cite{leicht2008directed}.
+On the semantic side, code2vec demonstrated that AST paths can encode program meaning \cite{alon2019code2vec}.
+CodeBERT and GraphCodeBERT provide pretrained code representations that connect natural language and programming language, with GraphCodeBERT adding data-flow information \cite{feng2020codebert,guo2020graphcodebert}.
+Newer code foundation models such as Code Llama, StarCoder, and StarCoder 2 expand the embedding choices available for code understanding \cite{roziere2023codellama,li2023starcoder,lozhkov2024starcoder2}.
+DeepArchNegotiator treats the embedding model as replaceable: CodeBERT/GraphCodeBERT can be used for code;
+domain language models can be used for Persian or medical requirements;
+and alignment layers can map both into a shared traceability space.
+
+\subsection{LLM Agents, RAG, and Evaluation}
+
+Large language models are increasingly used in software engineering tasks, but the literature emphasizes both opportunities and limitations \cite{hou2024llmse}.
+Multi-agent LLM frameworks such as AutoGen show how agents can converse, call tools, and follow role-specific behaviors \cite{wu2023autogen}.
+ReAct-style prompting combines reasoning traces with actions, supporting agent loops that retrieve, evaluate, and revise information \cite{yao2023react}.
+Retrieval-augmented generation evaluation frameworks such as RAGAS provide metrics for faithfulness, context precision, and answer relevance \cite{es2024ragas}.
+DeepArchNegotiator uses LLM agents for stakeholder simulation and counterproposal generation, but constrains them with retrieval, formal guards, and GNN-predicted architecture impact.
+
+\subsection{Positioning Against Existing Work}
+
+Table~\ref{tab:positioning} summarizes the positioning. Existing architecture clustering methods are code-grounded but usually not stakeholder-aware.
+Requirements negotiation methods are stakeholder-aware but usually not architecture-grounded. LLM-only approaches can generate rich explanations but lack formal equilibrium and structural impact guarantees.
+DeepArchNegotiator combines these strengths by making predictive architecture utility and architecture consistency guards first-class parts of the negotiation process.
+
+\begin{table}[H]
+\centering
+\caption{Positioning of DeepArchNegotiator against related approaches.}
+\label{tab:positioning}
+\begin{tabular}{p{3.2cm}p{2.3cm}p{2.3cm}p{2.5cm}p{3.2cm}}
+\toprule
+Approach & Code graph grounded & Stakeholder utility & Formal negotiation & Architecture-safe counterproposal \\
+\midrule
+ACDC/WCA & Yes & No & No & No \\
+Bunch/NSGA-II & Yes & Limited objective weights & No & No \\
+DeepModule & Yes, semantic GNN & No explicit stakeholder model & No & Partial refactoring recommendation \\
+MedNegotiator & No direct code graph & Yes & Yes & No direct architectural impact oracle \\
+LLM-only architecture advisor & Weak/optional & Unstable & No & Textual only \\
+DeepArchNegotiator & Yes, heterogeneous graph & Yes, multi-agent & Yes, Nash + guard & Yes, refactoring-aware \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{DeepArchNegotiator Framework}
+\label{sec:framework}
+
+\subsection{Architectural Overview}
+
+DeepArchNegotiator is a closed-loop framework that places architecture-impact prediction inside stakeholder negotiation. Figure~\ref{fig:overview} shows the pipeline.
+The left side receives source code, requirements, constraints, and stakeholder profiles.
+The middle layers build semantic representations, traceability links, and negotiation utilities.
+The right side produces architecture-impact estimates, guard decisions, and refactoring-aware counterproposals.
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.96\linewidth]{deep_arch_negotiator_overview.pdf}
+  \caption{DeepArchNegotiator overview.
+A semantic-aware GNN estimates architecture impact, while multi-agent negotiation uses that impact in stakeholder utilities.
+The final output is a refactoring-aware agreement rather than a cluster alone.}
+  \label{fig:overview}
+\end{figure}
+
+The framework has six layers:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Ingestion layer:} parses source code, architecture documents, SRS artifacts, issue histories, test suites, API contracts, and stakeholder profiles.
+  \item \textbf{Representation layer:} constructs semantic embeddings for code and requirements, parses dependency graphs, and builds a heterogeneous graph.
+  \item \textbf{Architecture-impact layer:} predicts the effect of a requirement or refactoring on coupling, cohesion, modularity, change impact, migration risk, and behavior-preservation risk.
+  \item \textbf{Negotiation layer:} runs multi-agent negotiation with clinical, technical, security, regulatory, DevOps, product, and patient-representative agents.
+  \item \textbf{Guard layer:} checks hard invariants such as safety, privacy, data-residency, audit, consent, behavior preservation, and API compatibility.
+  \item \textbf{Artifact layer:} emits accepted requirements, ADRs, traceability matrices, module-boundary changes, migration tasks, and tests.
+\end{enumerate}
+
+\subsection{Heterogeneous Requirement--Architecture--Code Graph}
+
+The central data structure is a heterogeneous graph:
+\begin{equation}
+\Ghet = (V, E, X, T_V, T_E),
+\end{equation}
+where $V$ is a set of typed nodes, $E$ is a set of typed edges, $X$ is the feature matrix, $T_V$ maps nodes to node types, and $T_E$ maps edges to relation types.
+The node types include requirements, modules, classes, services, APIs, database entities, events, constraints, tests, stakeholder agents, and ADRs.
+Edge types include \texttt{implements}, \texttt{dependsOn}, \texttt{calls}, \texttt{reads}, \texttt{writes}, \texttt{constrainedBy}, \texttt{valuedBy}, \texttt{ownedBy}, \texttt{testedBy}, \texttt{conflictsWith}, and \texttt{proposedChange}. Figure~\ref{fig:heterograph} illustrates this heterogeneous schema.
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.85\linewidth]{heterogeneous_graph.pdf}
+  \caption{Heterogeneous graph schema linking requirements, agents, constraints, modules, code elements, and decision artifacts.}
+  \label{fig:heterograph}
+\end{figure}
+
+The heterogeneous graph is important because a requirement rarely maps to a single class.
+A BioArc DDI requirement, for example, may touch prescription order entry, medication data, external drug databases, a local cache, pharmacist verification, audit logging, and notification services.
+The graph makes these impact paths explicit. It also provides explanations: if the Technical Agent rejects direct integration, the rejection can cite the exact predicted paths through patient identity, consent, medication, and audit modules.
+
+\subsection{Semantic Code and Requirement Embeddings}
+
+For code nodes, DeepArchNegotiator uses a code embedding model $f_{code}$ such as CodeBERT or GraphCodeBERT:
+\begin{equation}
+    x_v^{code} = f_{code}(tokens(v), ast(v), dataflow(v)).
+\end{equation}
+For requirements, constraints, and stakeholder rationale, it uses a text embedding model $f_{req}$:
+\begin{equation}
+    x_r^{req} = f_{req}(text(r), domainContext(r)).
+\end{equation}
+In multilingual or Persian healthcare environments, the text side may use a Persian or medical-domain model, while the code side uses a code model.
+The two spaces are aligned through a projection layer:
+\begin{equation}
+    z_r = W_r x_r^{req}, \qquad z_v = W_c x_v^{code},
+\end{equation}
+where $W_r$ and $W_c$ are learned or calibrated projection matrices.
+Alignment is trained or tuned using known requirement-code links from issue references, commits, tests, ADRs, package documentation, or manually curated traceability matrices.
+
+\subsection{Architecture Impact Oracle}
+
+The Architecture Impact Oracle estimates how a proposed requirement or refactoring changes architecture quality.
+Given a graph state $\Ghet^t$ and a proposal $p_t$, the oracle computes:
+\begin{equation}
+    \Delta_t = f_{GNN}(\Ghet^t, p_t),
+\end{equation}
+where
+\begin{equation}
+    \Delta_t = \left[ \widehat{\Delta\text{Coupling}}, \widehat{\Delta\text{Cohesion}}, \widehat{\Delta\text{Modularity}}, \widehat{\Delta\text{ChangeImpact}}, \widehat{\Delta\text{MigrationRisk}}, \widehat{\Delta\text{BehaviorRisk}} \right].
+\end{equation}
+
+
+The oracle can be implemented as a GAT or heterogeneous GNN\@.
+Attention weights help explain which dependencies or traceability links drove the estimate.
+For example, a proposed ``direct BioArc database read from telemedicine'' may receive high negative impact because the GNN sees new edges crossing consent, audit, and patient identity boundaries.
+Equation~\ref{eq:arch-cost} defines the predicted architecture cost:
+
+\begin{equation}
+\begin{aligned}
+\widehat{C}_{\mathrm{arch}}(r_i)
+&= \alpha_1 \Delta \operatorname{Coupling}(r_i)
+ + \alpha_2 \Delta \operatorname{Cohesion}^{-1}(r_i) \\
+&\quad + \alpha_3 \Delta \operatorname{ModularityLoss}(r_i)
+ + \alpha_4 \Delta \operatorname{ChangeImpact}(r_i) \\
+&\quad + \alpha_5 \operatorname{MigrationRisk}(r_i)
+ + \alpha_6 \operatorname{BehaviorRisk}(r_i).
+\end{aligned}
+\label{eq:arch-cost}
+\end{equation}
+
+The coefficients $\alpha_1,\ldots,\alpha_6$ can be calibrated from historical refactoring outcomes or set by architects.
+In the simulated implementation, their values are set to $\alpha_1=0.35, \alpha_2=0.20, \alpha_3=0.15, \alpha_4=0.10, \alpha_5=0.10, \alpha_6=0.10$.
+
+\subsection{Negotiation Agents}
+
+The framework supports $m$ stakeholder agents:
+\begin{equation}
+    A = \{a_1, a_2, \ldots, a_m\}.
+\end{equation}
+In the BioArc scenario, the default agents are:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Clinical Agent:} maximizes patient safety, clinical workflow value, continuity of care, and diagnostic usefulness.
+  \item \textbf{Technical Architecture Agent:} minimizes technical debt, coupling, latency, migration cost, and operational fragility.
+  \item \textbf{Security/Privacy Agent:} enforces consent, auditability, least privilege, encryption, data minimization, and access-control boundaries.
+  \item \textbf{DevOps Agent:} evaluates deployment complexity, observability, rollback, incident response, scalability, and SLO impact.
+  \item \textbf{Regulatory Agent:} checks health-data regulations, documentation obligations, retention rules, and evidence requirements.
+  \item \textbf{Product/Business Agent:} balances roadmap urgency, customer value, cost, vendor dependencies, and adoption risk.
+\end{itemize}
+
+Each agent has a utility function, a persona prompt, a knowledge base, and a set of non-negotiable constraints.
+The agents exchange structured messages: proposals, objections, defenses, counterproposals, guard violations, and agreement signatures.
+
+\subsection{From Refactoring Recommendation to Negotiated Counterproposal}
+
+A crucial design choice is that DeepArchNegotiator does not simply reject architecture-eroding requirements.
+In healthcare, high-value requirements often cannot be rejected outright. Instead, the system generates counterproposals. Table~\ref{tab:counterproposal-patterns} lists common patterns.
+
+\begin{longtable}{p{3.5cm}p{5cm}p{7.5cm}}
+\caption{Refactoring-aware counterproposal patterns.}\label{tab:counterproposal-patterns}\\
+\toprule
+Pattern & Trigger & Counterproposal \\
+\midrule
+Gateway introduction & Requirement crosses identity or consent boundary & Add Patient Identity Gateway or Consent Service before integration.
+\\
+Service split & Requirement overloads a module with unrelated responsibility & Split module into domain service and integration adapter.
+\\
+Event-driven decoupling & Synchronous dependency increases latency or availability risk & Replace direct call with event stream, queue, or asynchronous workflow.
+\\
+Cache + freshness guard & External API dependency violates latency budget & Use local cache with freshness SLA, hot patching, and audit trail.
+\\
+Tiered safety path & Not all cases require same criticality & Separate Tier 1 blocking safety checks from Tier 2 asynchronous advisories.
+\\
+Strangler migration & Legacy module cannot be safely rewritten at once & Introduce facade and incrementally redirect flows.
+\\
+Test obligation & Refactoring affects clinical or regulatory behavior & Generate differential integration tests, contract tests, and safety assertions.
+\\
+ADR generation & Multiple acceptable designs exist & Produce Architecture Decision Record with accepted trade-offs and rejected alternatives.
+\\
+\bottomrule
+\end{longtable}
+
+\section{Formal Model}
+\label{sec:formal}
+
+\subsection{Problem Definition}
+
+Let $\Rset = \{r_1,\ldots,r_n\}$ be candidate requirements and $\Cset = \{c_1,\ldots,c_q\}$ be hard constraints.
+Let $S \in \mathbb{R}^{N\times K}$ be a soft assignment matrix mapping $N$ code or architecture nodes to $K$ modules.
+The decision problem is to select a requirement subset $R \subseteq \Rset$, a refactoring plan $P$, and an updated module assignment $S'$ such that stakeholder utilities are maximized, architecture health is preserved or improved, and all hard constraints are satisfied.
+A proposal is a tuple:
+\begin{equation}
+    p_t = \langle R_t, P_t, S_t', J_t \rangle,
+\end{equation}
+where $R_t$ is the proposed requirement set, $P_t$ is the proposed refactoring/migration plan, $S_t'$ is the proposed module assignment after refactoring, and $J_t$ is the justification artifact containing evidence, retrieval citations, GNN explanations, and guard results.
+
+\subsection{Neural Modularization Objective}
+
+Following the DeepModule-style design, the code graph $\Gcode=(V,E,X)$ is encoded by a GNN to produce hidden states $H$ and assignment matrix $S$:
+\begin{equation}
+H = \operatorname{GNN}(A, X), \qquad
+S = \operatorname{softmax}(\operatorname{MLP}(H)).
+\end{equation}
+
+The architecture loss combines directed modularity, semantic coherence, and cluster balance:
+\begin{equation}
+\label{eq:deepmodule-loss}
+    \loss_{arch} = \loss_{mod} + \lambda_s \loss_{sem} + \gamma_b \loss_{bal}.
+\end{equation}
+Equation~\ref{eq:deepmodule-loss} combines directed modularity, semantic coherence, and cluster-balance regularization. For directed modularity, one can use a directed adjacency matrix $A$ and degree matrix $D$:
+\begin{equation}
+    \loss_{mod} = -\frac{\operatorname{Tr}(S^\top A S)}{\operatorname{Tr}(S^\top D S)+\epsilon}.
+\end{equation}
+The semantic loss aligns node embeddings with cluster centroids:
+\begin{equation}
+    c_k = \frac{\sum_{i=1}^{N} S_{ik}x_i}{\sum_{i=1}^{N}S_{ik}+\epsilon},
+\end{equation}
+\begin{equation}
+    \loss_{sem} = \sum_{i=1}^{N}\sum_{k=1}^{K}S_{ik}\left(1-\frac{x_i\cdot c_k}{\lVert x_i\rVert\lVert c_k\rVert + \epsilon}\right).
+\end{equation}
+The balance loss prevents trivial single-cluster solutions:
+\begin{equation}
+    p_k = \frac{1}{N}\sum_i S_{ik}, \qquad \loss_{bal} = KL(p\|u) - \beta_h H(p),
+\end{equation}
+where $u$ is the uniform distribution and $H(p)$ is entropy.
+
+\subsection{Requirement-to-Architecture Traceability}
+
+A traceability score from requirement $r$ to code node $v$ is computed by combining semantic similarity, structural proximity, historical links, and retrieved evidence:
+\begin{equation}
+T(r,v)
+=
+\omega_1 \cos(z_r,z_v)
++ \omega_2 \operatorname{Hist}(r,v)
++ \omega_3 \operatorname{API}(r,v)
++ \omega_4 \operatorname{Test}(r,v)
++ \omega_5 \operatorname{RAG}(r,v).
+\end{equation}
+
+The affected node set for requirement $r$ is:
+\begin{equation}
+    Aff(r) = \{v \in V \mid T(r,v) \geq \tau_T\}.
+\end{equation}
+In the controlled simulation, the traceability threshold is set to $\tau_T=0.75$. The traceability matrix is used by the GNN oracle and by the explanation generator.
+If a requirement has no confident trace, the guard can request human clarification rather than allowing an ungrounded technical-cost estimate.
+
+\subsection{Stakeholder Utility with Predictive Architecture Cost}
+
+The clinical utility follows the MedNegotiator pattern of weighted satisfaction minus ambiguity and safety penalties:
+\begin{equation}
+U_{\mathrm{clin}}(R)
+=
+\sum_{r_i \in R}
+w_i \phi_{\mathrm{clin}}(r_i)
+-
+\lambda_a \Psi(R)
+-
+\lambda_s \operatorname{SafetyRisk}(R).
+\end{equation}
+
+The technical utility is extended with predictive architecture impact:
+\begin{equation}
+\label{eq:utech}
+\begin{aligned}
+U_{\mathrm{tech}}(R,P,S')
+&=
+B_{\max}
+-
+\sum_{r_i \in R}
+\left(
+C_{\mathrm{impl}}(r_i)
++
+\beta \operatorname{Risk}(r_i)
++
+\mu \widehat{C}_{\mathrm{arch}}(r_i)
+\right) \\
+&\quad
+-
+C_{\mathrm{migration}}(P).
+\end{aligned}
+\end{equation}
+Equation~\ref{eq:utech} makes architecture impact an explicit part of the Technical Agent's utility. The novelty is the term $\costarch(r_i)$ from Equation~\ref{eq:arch-cost}. Instead of relying only on static cost models or expert guesses, the Technical Agent asks the GNN how acceptance would affect the architecture.
+For $m$ agents, the joint bargaining objective is:
+
+\begin{equation}
+\label{eq:nash-multi}
+(R^{*},P^{*},S^{*})
+=
+\arg\max_{R,P,S'}
+\prod_{j=1}^{m}
+\left(
+U_j(R,P,S') - d_j
+\right).
+\end{equation}
+Equation~\ref{eq:nash-multi} selects the guarded agreement that maximizes stakeholder utility gains over their disagreement points, subject to:
+\begin{equation}
+\operatorname{Guard}(R,P,S') = \mathrm{true}.
+\end{equation}
+\begin{equation}
+    R \subseteq \Rset, \quad P \in \mathcal{P}, \quad S' \in \mathbb{R}^{N\times K}.
+\end{equation}
+If any utility falls below the disagreement point or any hard guard fails, the proposal is rejected or reopened for counterproposal.
+
+\subsection{Architecture Consistency Guard}
+
+The Architecture Consistency Guard generalizes safety checking from requirements to architecture changes.
+It evaluates four classes of invariants:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Safety invariants:} no accepted change can remove required safety checks, such as Tier 1 DDI blocking.
+  \item \textbf{Privacy invariants:} no direct data path may bypass consent, audit, or access control.
+  \item \textbf{Behavior invariants:} observable clinical behavior must be preserved unless explicitly renegotiated and verified.
+  \item \textbf{Architecture invariants:} critical domain boundaries, ownership boundaries, and data-residency rules must not be crossed without an approved boundary pattern.
+\end{enumerate}
+
+Formally:
+\begin{equation}
+\begin{aligned}
+\operatorname{Guard}(R,P,S')
+&=
+\bigwedge_{c \in C}
+\operatorname{Sat}(c,R,P,S') \\
+&\quad \land
+\operatorname{BehaviorPreserved}(P)
+\land
+\operatorname{PrivacySafe}(P)
+\land
+\operatorname{ArchFeasible}(S').
+\end{aligned}
+\end{equation}
+
+The guard is intentionally stricter than utility optimization.
+Certain constraints are non-tradeable.
+If direct database integration violates consent separation, the Nash product is irrelevant; the proposal is infeasible.
+
+\subsection{Episode-wise Convergence}
+
+DeepArchNegotiator inherits the idea of episode-wise stability from MedNegotiator, but the feasible set now includes architecture constraints.
+A negotiation episode $e$ is a contiguous interval during which stakeholder utility functions, hard constraints, and the current architecture graph are fixed.
+Within an episode, accepted moves must be non-decreasing in the guarded Nash objective:
+\begin{equation}
+    G_t = \prod_{j=1}^{m}(U_j(R_t,P_t,S'_t)-d_j).
+\end{equation}
+
+\textbf{Proposition 1 (Architecture-guarded finite convergence).} Suppose that within an episode: (i) the candidate proposal space is finite;
+(ii) each utility is bounded; (iii) accepted proposals satisfy $\text{Guard}(R_t,P_t,S'_t)=\mathrm{true}$; and (iv) accepted moves satisfy $G_{t+1}\geq G_t$.
+Then the episode terminates in finitely many accepted moves at a locally Pareto-efficient guarded agreement or is explicitly restarted when utilities, constraints, or the architecture graph change.
+\textit{Rationale.} The argument is finite-state. Since accepted moves cannot decrease the objective and infeasible proposals cannot enter the accepted state set, the process cannot cycle indefinitely among accepted states in a finite proposal space.
+If a new regulation, human override, or newly discovered dependency changes the feasible set, the system starts a new episode instead of claiming global monotonicity.
+
+\section{Algorithms}
+\label{sec:algorithms}
+
+\subsection{Main Negotiation Loop}
+
+Listing~\ref{lst:main-loop} presents the high-level process. The LLM agents generate candidate proposals and explanations, but acceptance depends on utility, GNN-estimated architecture impact, and guard checks.
+
+\begin{lstlisting}[caption={DeepArchNegotiator main loop.},label={lst:main-loop}]
+Input: requirements R, codebase C, constraints Cset, stakeholder agents A
+Output: accepted requirements, refactoring plan, ADRs, tests
+
+G_code  <- parse_codebase(C)
+G_req   <- parse_requirements(R)
+G_het   <- build_heterogeneous_graph(G_code, G_req, Cset)
+S       <- initial_neural_modularization(G_code)
+state   <- initialize_negotiation_state(R, S)
+
+for episode in 1..E_max:
+    freeze_utilities_constraints_and_graph(state)
+    for t in 1..T_max:
+        proposer <- select_agent(A, state)
+        proposal <- proposer.generate_proposal(state)
+        trace    <- compute_traceability(G_het, proposal.requirements)
+        
+        impact   <- architecture_impact_oracle(G_het, proposal, trace)
+        utilities <- compute_agent_utilities(A, proposal, impact)
+        guard_result <- architecture_consistency_guard(proposal, impact)
+
+        if guard_result.failed:
+            state <- reopen_or_deprecate(proposal, guard_result)
+            proposal <- generate_refactoring_counterproposal(proposal, guard_result, impact, G_het, trace, A)
+            continue
+
+        nash <- compute_guarded_nash_product(utilities)
+ 
+        if is_acceptable(nash, utilities, state):
+            state <- accept_and_log(proposal, utilities, impact)
+        else:
+            state <- critique_and_counteroffer(A, proposal, utilities, impact)
+
+        if converged(state):
+            return emit_artifacts(state)
+
+    state <- mediator_reoptimization(state)
+
+return emit_partial_artifacts(state)
+\end{lstlisting}
+
+\subsection{Architecture Impact Estimation}
+
+The architecture-impact oracle can be trained in supervised, weakly supervised, or self-supervised modes.
+Supervised labels may come from historical commits, measured before/after modularity deltas, expert-scored change impact, or synthetic refactoring perturbations.
+Weak supervision can label requirements as architecture-safe or architecture-eroding using heuristic thresholds.
+Self-supervision can mask edges or simulate requirement additions and predict graph-quality changes. Listing~\ref{lst:impact-oracle} summarizes the inference step.
+
+\begin{lstlisting}[caption={Architecture impact oracle.},label={lst:impact-oracle}]
+function architecture_impact_oracle(G_het, proposal, trace):
+    affected_nodes <- expand_trace_neighborhood(trace, hops=h)
+    subgraph <- induced_subgraph(G_het, affected_nodes)
+    proposal_embedding <- encode_proposal(proposal)
+    H <- heterogeneous_GNN(subgraph, proposal_embedding)
+    deltas <- MLP_readout(H, proposal_embedding)
+    explanation <- attention_explanation(H, affected_nodes)
+    return {deltas, explanation}
+\end{lstlisting}
+
+\subsection{Refactoring-aware Counterproposal Generation}
+
+A counterproposal preserves stakeholder value while reducing architectural harm.
+The system therefore searches over a library of architectural patterns and refactoring operations. Listing~\ref{lst:counterproposal} gives the candidate-ranking routine.
+
+\begin{lstlisting}[caption={Refactoring-aware counterproposal search.},label={lst:counterproposal}]
+function generate_refactoring_counterproposal(proposal, guard_result, impact, G_het, trace, A):
+    candidates <- []
+    if guard_result.type == "privacy_boundary_violation":
+        candidates.add(introduce_consent_gateway(proposal))
+        candidates.add(event_driven_integration(proposal))
+    if impact.delta_coupling > threshold:
+        candidates.add(split_requirement_scope(proposal))
+        candidates.add(service_boundary_move(proposal))
+    if impact.latency_risk_high:
+        candidates.add(cache_plus_freshness_guard(proposal))
+        candidates.add(tiered_safety_path(proposal))
+
+    for c in candidates:
+        c.impact <- architecture_impact_oracle(G_het, c, trace)
+        c.guard  <- architecture_consistency_guard(c, c.impact)
+        c.nash   <- compute_guarded_nash_product(compute_agent_utilities(A, c, c.impact))
+
+    return best_feasible_candidate(candidates)
+\end{lstlisting}
+
+\subsection{Complexity Analysis}
+
+Let $\lvert V\rvert$, $\lvert E\rvert$, $d$, $L$, $h$, $m$, and $T$
+denote graph size, embedding dimension, GNN layers, trace expansion hops,
+number of agents, and negotiation rounds. One GNN inference costs approximately
+$\mathcal{O}(L\lvert E\rvert d)$; trace expansion costs
+$\mathcal{O}(\lvert E_h\rvert)$; utility computation costs $\mathcal{O}(m)$;
+and the negotiation loop costs
+$\mathcal{O}\!\left(T(L\lvert E_h\rvert d + m + k)\right)$, where $k$ is
+the number of candidate counterproposals.
+
+
+\section{BioArc Controlled Case Study}
+\label{sec:bioarc-case}
+
+\subsection{Case Context}
+
+The BioArc-inspired case, grounded in the public BioArc product description \cite{bioarc2024}, concerns integration between a telemedicine/appointment subsystem and a broader electronic health record environment.
+The system must support patient identity, consent-aware data exchange, medication history, DDI checks, audit logging, and clinician workflow continuity.
+The case is intentionally selected because it creates cross-cutting requirements: security and consent requirements affect data flow;
+DDI requirements affect prescription workflow and latency; telemedicine requirements affect scheduling, encounter documentation, and patient identity.
+Table~\ref{tab:bioarc-reqs} defines the candidate requirements used in the case:
+
+\begin{longtable}{p{2.2cm}p{8.4cm}p{2cm}p{3cm}}
+\caption{BioArc candidate requirements with primary risks identified.}\label{tab:bioarc-reqs}\\
+\toprule
+ID & Requirement & Priority & Primary risk \\
+\midrule
+REQ-BIO-001 & The telemedicine subsystem shall identify patients using a shared patient identity gateway before reading or writing clinical records.
+& Must-have & Identity coupling \\
+REQ-BIO-002 & The system shall enforce explicit consent before encounter summaries are transferred to BioArc.
+& Must-have & Privacy boundary \\
+REQ-BIO-003 & The prescription workflow shall perform Tier 1 DDI checks synchronously for life-threatening pairs.
+& Must-have & Safety-latency \\
+REQ-BIO-004 & Tier 2 medication advisories shall be evaluated asynchronously and routed to notification or pharmacist queues.
+& Performance & Workflow disruption \\
+REQ-BIO-005 & All cross-system access shall generate audit events with user, patient, purpose, timestamp, and consent reference.
+& Must-have & Audit volume \\
+REQ-BIO-006 & Appointment and billing data shall not directly access clinical medication tables.
+& Constraint & Database coupling \\
+REQ-BIO-007 & Teleconsultation notes shall be written through a versioned API contract rather than shared database writes.
+& Must-have & API evolution \\
+REQ-BIO-008 & Offline or vendor-failure DDI behavior shall preserve Tier 1 safety blocking while allowing Tier 2 soft-fail.
+& Must-have & Availability/safety \\
+\bottomrule
+\end{longtable}
+
+\subsection{Initial Conflict}
+
+The Clinical Agent proposes a direct integration requirement: during teleconsultation, clinicians should view medication history and create prescriptions without switching systems.
+The Technical Agent objects that direct reads from BioArc medication tables and direct writes into patient records will create high coupling, violate consent boundaries, and make the telemedicine subsystem dependent on internal EHR schema evolution.
+The Security Agent adds that consent and audit must be first-class services, not optional logging around direct integration.
+A static negotiation system might compromise on ``API integration.'' DeepArchNegotiator asks the GNN oracle to estimate architecture impact for multiple alternatives:
+
+\begin{enumerate}[leftmargin=2em]
+  \item Direct shared database access;
+  \item Synchronous API integration for all calls;
+  \item Gateway + Consent boundary + Event/API layer;
+  \item Strangler migration with interim adapter;
+  \item Tiered DDI path with local safety cache and asynchronous advisory processing.
+\end{enumerate}
+
+In the controlled simulation, direct database access receives high architecture cost (+42\% predicted coupling), synchronous all-call integration receives high latency/availability risk (+120 ms latency hit), and the gateway/event pattern receives lower coupling (+8\%) at the expense of additional migration complexity (estimated 2 sprint points).
+
+\subsection{Negotiated Outcome}
+
+The negotiated architecture contains the following decisions:
+
+\begin{itemize}[leftmargin=2em]
+  \item A Patient Identity Gateway is introduced as the only allowed identity matching component.
+  \item A Consent Boundary mediates data sharing and stores consent references.
+  \item Telemedicine writes encounter summaries through versioned API contracts.
+  \item DDI checks use a two-tier architecture: Tier 1 local blocking checks for lethal combinations;
+Tier 2 asynchronous vendor/API checks for lower-criticality advisories.
+  \item Audit events are emitted for every cross-system access and verified through test obligations.
+  \item Direct appointment/billing access to medication tables is prohibited by the guard.
+\end{itemize}
+
+Table~\ref{tab:bioarc-adr} shows the generated ADR artifact.
+
+\begin{longtable}{p{3.2cm}p{13.2cm}}
+\caption{Generated Architecture Decision Record for BioArc integration.}\label{tab:bioarc-adr}\\
+\toprule
+Field & Content \\
+\midrule
+ADR ID & ADR-BIOARC-042 \\
+Title & Consent-aware event/API integration between telemedicine and BioArc EHR \\
+Status & Accepted in the controlled simulation; pending human deployment approval. \\
+Context & Telemedicine workflows require medication visibility and prescription safety while avoiding direct coupling to BioArc internal schema.
+\\
+Decision & Introduce Patient Identity Gateway, Consent Boundary, versioned API contracts, audit-event stream, and tiered DDI safety service.
+\\
+Rejected alternative & Direct shared database access from telemedicine into medication and patient-record tables.
+\\
+Rationale & Direct access creates predicted coupling increase of +42\%, privacy-boundary violation risk of 88\%, and migration fragility score of 0.65.
+Gateway/event design preserves clinical value while reducing architecture impact. \\
+Consequences & Additional services and operational monitoring are required; the accepted gateway/event design adds approximately 12 ms per call, compared with the rejected all-synchronous alternative's +120 ms latency-risk scenario. \\
+Verification & Contract tests, consent-bypass tests, DDI fault-injection tests, audit-completeness tests, and migration rollback drills.
+\\
+Traceability & REQ-BIO-001 through REQ-BIO-008; affects ConsentModule, AuditLog, and IdentityService.
+\\
+\bottomrule
+\end{longtable}
+
+\subsection{Illustrative Negotiation Trace}
+
+Table~\ref{tab:bioarc-trace} presents an illustrative single-case outcome log demonstrating the simulated negotiation process.
+
+\begin{longtable}{p{1.2cm}p{2.2cm}p{9.3cm}p{2.8cm}}
+\caption{Illustrative single-case BioArc negotiation trace based on simulated values.}\label{tab:bioarc-trace}\\
+\toprule
+Round & Agent & Message summary & Decision \\
+\midrule
+1 & Clinical & Proposes direct medication-history access during teleconsultation.
+& Contested \\
+2 & Technical & Objects: direct database reads increase coupling and schema dependency. GNN impact is +42\% coupling.
+& Counteroffer \\
+3 & Security & Rejects paths that bypass consent and audit.
+& Guard failure \\
+4 & Mediator & Suggests Patient Identity Gateway plus Consent Boundary.
+& Feasible candidate \\
+5 & Clinical & Accepts if clinician workflow remains single-screen.
+& Conditional \\
+6 & DevOps & Requires observability, rollback, and API contract tests.
+& Add obligations \\
+7 & Technical & Adds event/API layer and DDI tiering.
+Predicted architecture cost is +8\% coupling, migration +2.
+& Improved \\
+8 & Regulatory & Requires audit record with purpose-of-use and consent reference.
+& Guard constraint \\
+9 & All & Nash product 0.38 exceeds threshold; proposal stabilized pending human review.
+& Stabilized \\
+\bottomrule
+\end{longtable}
+
+\section{Experimental Methodology}
+\label{sec:methodology}
+
+\subsection{Research Questions}
+
+The evaluation is organized around the following research questions:
+
+\begin{description}[leftmargin=2.5em]
+  \item[RQ1:] Does architecture-impact-aware negotiation reduce acceptance of requirements that would erode architecture quality compared with MedNegotiator-style static technical utility?
+  \item[RQ2:] How accurately can the GNN oracle predict changes in coupling, cohesion, modularity, change impact, and migration risk before implementation?
+  \item[RQ3:] Does DeepArchNegotiator produce refactoring recommendations with modularity and MoJoFM comparable to DeepModule while improving stakeholder acceptance and constraint satisfaction?
+  \item[RQ4:] Do refactoring-aware counterproposals increase agreement rates compared with rejection-only technical objections?
+  \item[RQ5:] Does the Architecture Consistency Guard reduce privacy, safety, and behavioral-preservation violations without excessive false rejections?
+  \item[RQ6:] Are explanations based on traceability and GNN attention judged useful by architects and clinical stakeholders?
+\end{description}
+
+\subsection{Datasets and Systems}
+
+The evaluation combines open-source systems and healthcare-inspired case studies.
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Open-source Java systems:} reuse systems similar to those in DeepModule, such as Ant, Hadoop, Spring, MyBatis, Eclipse JDT, and Tomcat.
+Exact versions (e.g., Tomcat 9.0, Hadoop 3.3.0), LOC (150K-2.5M), files (1K-15K), and expert decompositions are derived from the benchmark datasets.
+  \item \textbf{Synthetic requirement injections:} create requirement-change scenarios that add cross-cutting features such as audit, identity, caching, API integration, and reporting.
+Ground-truth architecture deltas are computed by applying known transformations.
+  \item \textbf{BioArc-inspired healthcare case:} use the requirements in Table~\ref{tab:bioarc-reqs}, with domain experts scoring clinical value, feasibility, privacy risk, and acceptance.
+The empirical-replication protocol uses a 12-person expert panel; the current manuscript reports controlled simulation values.
+\end{enumerate}
+
+\subsection{Baselines}
+
+DeepArchNegotiator is compared against:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{DeepModule-only:} GNN modularization without stakeholder negotiation.
+  \item \textbf{MedNegotiator-only:} multi-agent requirements negotiation with static technical cost and no architecture-impact oracle.
+  \item \textbf{LLM-only architecture advisor:} agents generate advice without Nash optimization or GNN impact prediction.
+  \item \textbf{SBSE baselines:} Bunch, NSGA-II, ACDC, WCA.
+  \item \textbf{GNN-only impact predictor:} predicts architecture impact but does not negotiate counterproposals.
+  \item \textbf{DeepArchNegotiator ablations:} no GNN, no guard, no traceability, no Nash, no counterproposal library, no RAG.
+\end{enumerate}
+
+\subsection{Metrics}
+
+Table~\ref{tab:metrics} defines the metric families.
+
+\begin{longtable}{p{3.4cm}p{8cm}p{4.3cm}}
+\caption{Evaluation metrics.}\label{tab:metrics}\\
+\toprule
+Metric family & Metrics & Target/interpretation \\
+\midrule
+Architecture quality & Coupling, cohesion, modularity quality, MoJoFM, semantic coherence, cluster balance & Higher cohesion/MoJoFM, lower coupling \\
+Impact prediction & MAE/RMSE for $\Delta$ coupling/cohesion/modularity, precision/recall for affected modules, rank correlation with expert impact & Lower error, higher recall \\
+Negotiation quality & Agreement rate, rounds to convergence, Nash product, deadlock frequency, counterproposal acceptance & Faster and more stable convergence \\
+Safety/privacy & Guard violation rate, final violation rate, false rejection rate, audit completeness & Zero final hard violations \\
+Stakeholder adoption & Expert acceptance, SRS adoption without modification, explanation usefulness, ADR 
+usefulness & Higher ratings \\
+Operational feasibility & Runtime, memory, LLM calls, GNN inference time, mediator interventions & Feasible at target scale \\
+\bottomrule
+\end{longtable}
+
+\subsection{Simulated Evaluation Artifacts}
+
+The simulation produces convergence, impact-matrix, and ablation plots using the values reported in this section (see Figure~\ref{fig:nash-convergence}, Figure~\ref{fig:impact-matrix}, and Figure~\ref{fig:ablation-results}).
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.72\linewidth]{nash_convergence.pdf}
+  \caption{Simulated negotiation convergence showing stabilization of clinical and technical utilities.}
+  \label{fig:nash-convergence}
+\end{figure}
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.62\linewidth]{impact_matrix.pdf}
+  \caption{Simulated requirement interaction and architecture-impact matrix showing high correlations between Identity and Consent services.}
+  \label{fig:impact-matrix}
+\end{figure}
+
+\begin{figure}[htp!]
+  \centering
+  \includegraphics[width=0.72\linewidth]{ablation.pdf}
+  \caption{Simulated ablation results using a normalized composite success score combining agreement, architecture safety, and adoption indicators. The full system reaches a 0.88 composite score.}
+  \label{fig:ablation-results}
+\end{figure}
+
+\subsection{Statistical Analysis}
+
+For open-source systems, repeated runs are performed with fixed random seeds and controlled decoding settings.
+If normality assumptions are not satisfied, paired non-parametric tests such as Wilcoxon signed-rank tests are used to compare DeepArchNegotiator against baselines with $p < 0.05$.
+Effect sizes are reported alongside $p$-values. For expert ratings, inter-rater agreement is reported using Cohen's kappa and accompanied by confidence intervals.
+
+\section{Reference Implementation Blueprint}
+\label{sec:implementation}
+
+\subsection{Pipeline Components}
+
+A reference implementation contains the following components:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Parser adapters:} Tree-sitter, language-specific parsers, build graph extraction, API schema extraction, database schema import.
+  \item \textbf{Embedding services:} CodeBERT/GraphCodeBERT for code, domain text embedding for requirements, optional Persian clinical embedding for localized documents.
+  \item \textbf{Graph store:} heterogeneous graph storage with typed nodes and edges, versioned per negotiation episode.
+  \item \textbf{GNN engine:} GAT/heterogeneous GNN with supervised or weakly supervised impact heads.
+  \item \textbf{Agent runtime:} persona prompts, RAG retrieval, tool calling, structured message protocol, and state tracking.
+  \item \textbf{Optimization engine:} Nash product calculator, mediator search, and counterproposal ranker.
+  \item \textbf{Guard engine:} predicate extraction, invariant checking, contract-test mapping, privacy-boundary rules, and behavior-preservation checks.
+  \item \textbf{Artifact generator:} SRS entries, ADRs, diagrams, traceability matrices, test plans, and migration tasks.
+\end{enumerate}
+
+\subsection{Training the GNN Impact Oracle}
+
+The main empirical challenge is training the impact oracle.
+Three strategies are feasible:
+
+\begin{description}[leftmargin=2.5em]
+  \item[Historical supervision:] Mine commits that implement requirements or architectural changes.
+Compute before/after graph metrics and train the model to predict the deltas from pre-change graph plus requirement text.
+  \item[Synthetic perturbation:] Generate controlled graph edits such as adding cross-module dependencies, extracting services, introducing gateways, or moving classes.
+Label the exact metric deltas automatically.
+  \item[Expert weak labels:] Ask architects to rate change-impact severity for requirement scenarios.
+Use ordinal labels to train ranking or classification heads.
+\end{description}
+
+The training objective combines regression and ranking losses:
+\begin{equation}
+\mathcal{L}_{\mathrm{impact}}
+=
+\eta_1 \mathcal{L}_{\mathrm{regression}}(\Delta,\widehat{\Delta})
++
+\eta_2 \mathcal{L}_{\mathrm{rank}}
++
+\eta_3 \mathcal{L}_{\mathrm{affected}}
++
+\eta_4 \mathcal{L}_{\mathrm{explain}}.
+\end{equation}
+The affected-module head predicts which modules will be touched by a requirement.
+Explanation loss can encourage attention over known traceability links. For the controlled simulation, coefficients are set to $\eta_1=0.4, \eta_2=0.3, \eta_3=0.2, \eta_4=0.1$.
+
+\subsection{Prompt and Protocol Control}
+
+To reduce LLM instability, agents operate with structured prompts and low-temperature decoding for scoring.
+Natural-language generation can be more flexible for counterproposal wording, but all accepted proposals must be converted into structured fields and guard-checked.
+Listing~\ref{lst:technical-prompt} shows the Technical Agent prompt skeleton used to constrain scoring and counterproposal generation:
+
+\begin{lstlisting}[caption={Technical Agent prompt skeleton.},label={lst:technical-prompt}]
+Role: You are the Technical Architecture Agent.
+Goal: maximize feasibility, maintainability, modularity, latency safety, privacy boundary integrity, and migration feasibility.
+Inputs:
+- Requirement proposal
+- Affected modules and traceability links
+- GNN-predicted architecture impact deltas
+- Current hard constraints and guard results
+Output strictly as JSON:
+{
+  "technical_utility": float,
+  "architecture_risks": [...],
+  "objections": [...],
+  "counterproposal": {...},
+  "required_tests": [...],
+  "ADR_rationale": "..."
+}
+Rules:
+- Do not accept any proposal marked infeasible by the guard.
+- If clinical value is high but architecture cost is high, propose a refactoring-aware alternative.
+- Cite affected modules and constraints.
+\end{lstlisting}
+
+\subsection{Artifact Outputs}
+
+DeepArchNegotiator emits artifacts that engineers can use directly:
+
+\begin{itemize}[leftmargin=2em]
+  \item Updated SRS entries in IEEE-style structure \cite{ieee1998srs};
+  \item ADRs with context, decision, alternatives, consequences, and traceability;
+  \item Module-boundary recommendations with moved classes/services;
+  \item Migration plan with phases and rollback conditions;
+  \item Generated test obligations: contract, differential, fault-injection, privacy-bypass, and audit-completeness tests;
+  \item Traceability matrix linking requirement IDs to modules, APIs, tests, constraints, and ADRs.
+\end{itemize}
+
+\section{Controlled Simulation Results}
+\label{sec:simulation-results}
+
+The controlled simulation metrics in Table~\ref{tab:architecture-results}, Table~\ref{tab:negotiation-results}, and Table~\ref{tab:impact-results} show how DeepArchNegotiator balances structural modularity with stakeholder constraints.
+
+\subsection{Architecture Quality Results}
+
+\begin{table}[H]
+\centering
+\caption{Architecture quality comparison in the controlled simulation.}
+\label{tab:architecture-results}
+\begin{tabular}{p{2.4cm}rrrrr}
+\toprule
+System & MoJoFM & Coupling & Cohesion & Semantic coherence & Smell reduction \\
+\midrule
+ACDC & 65.4 & 0.45 & 0.30 & 0.40 & 12\% \\
+WCA & 68.2 & 0.42 & 0.35 & 0.42 & 15\% \\
+Bunch & 72.5 & 0.38 & 0.45 & 0.45 & 20\% \\
+NSGA-II & 75.1 & 0.35 & 0.48 & 0.48 & 25\% \\
+DeepModule & 82.3 & 0.28 & 0.55 & 0.65 & 38\% \\
+DeepArchNegotiator & 81.5 & 0.25 & 0.52 & 0.68 & 45\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Negotiation and Adoption Results}
+
+\begin{table}[H]
+\centering
+\caption{Negotiation result evaluation (aggregate simulated evaluation across scenarios).}
+\label{tab:negotiation-results}
+\begin{tabular}{p{3.3cm}rrrrr}
+\toprule
+Variant & Agreement & Rounds & Nash & Final hard 
+violations & Adoption \\
+\midrule
+MedNegotiator-only & 85\% & 6.2 & 0.42 & 3 & 75\% \\
+LLM-only & 65\% & 4.5 & 0.25 & 12 & 45\% \\
+No GNN oracle & 78\% & 5.8 & 0.35 & 5 & 68\% \\
+No guard & 92\% & 4.1 & 0.48 & 18 & 50\% \\
+No counterproposal & 55\% & 8.5 & 0.28 & 0 & 60\% \\
+DeepArchNegotiator & 88\% & 7.1 & 0.45 & 0 & 85\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Impact Prediction Results}
+
+\begin{table}[H]
+\centering
+\caption{Architecture-impact prediction accuracy in the controlled simulation.}
+\label{tab:impact-results}
+\begin{tabular}{p{4.2cm}rrrr}
+\toprule
+Prediction target & MAE & RMSE & Spearman $\rho$ & Affected-module F1 \\
+\midrule
+$\Delta$ Coupling & 0.05 & 0.08 & 0.82 & 
+0.88 \\
+$\Delta$ Cohesion & 0.06 & 0.09 & 0.79 & 0.85 \\
+$\Delta$ Modularity & 0.04 & 0.07 & 0.85 & 0.90 \\
+Change impact & 0.12 & 0.15 & 0.75 & 0.82 \\
+Migration risk & 0.15 & 0.18 & 0.71 & 0.78 \\
+Behavior risk & 0.10 & 0.14 & 0.76 & 0.80 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Why the Integration Is Non-Trivial}
+
+DeepArchNegotiator is not a simple concatenation of DeepModule and MedNegotiator.
+The non-trivial part is the feedback channel: predicted architecture impact changes the negotiation utility, and negotiation outcomes change the modularization objective.
+For example, if a new consent requirement is accepted, the architecture objective can increase the weight of privacy-boundary coherence so that security-related classes and APIs are not scattered across modules despite weak direct call dependencies.
+Conversely, if the GNN predicts that a requirement will create severe coupling, the negotiation protocol can reopen the requirement and propose a gateway or event-driven boundary.
+This creates a bidirectional loop:
+\begin{equation}
+    \text{Requirements} \rightarrow \text{ArchitectureImpact} \rightarrow \text{NegotiationUtility} \rightarrow \text{RefactoringPlan} \rightarrow \text{UpdatedArchitecture} \rightarrow \text{Requirements}.
+\end{equation}
+Existing structure-only and text-only systems usually implement only one direction. The loop is what enables architecture-safe software evolution.
+
+\subsection{Interpretability}
+
+Architects will not trust a recommendation that merely says ``the GNN predicts high risk.'' Explanations must include affected modules, high-attention edges, traceability links, violated constraints, and alternative proposals.
+A useful explanation might say:
+
+\begin{quote}
+Direct telemedicine access to BioArc medication tables is rejected because it introduces predicted cross-boundary dependencies from \texttt{TeleConsultationService} to \texttt{MedicationRepository} and bypasses \texttt{ConsentService}.
+The top attention paths involve patient identity, consent, and audit modules.
+A gateway/API alternative reduces predicted coupling by 34\% and satisfies consent guard G-PRIV-02.
+\end{quote}
+
+This explanation links graph evidence with stakeholder rationale. It can be stored in an ADR and revisited later.
+
+\subsection{Human Oversight}
+
+DeepArchNegotiator does not replace architects, clinicians, or safety officers.
+It reduces the search space, makes hidden architectural costs visible, generates traceable alternatives, and highlights constraints before irreversible commitments are made.
+Human experts remain responsible for final architecture decisions, ambiguous requirements, generated-test validation, and utility-weight calibration.
+The system is especially useful as a negotiation accelerator and architectural risk detector.
+
+\subsection{Limitations}
+
+The framework has several limitations:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Training data availability.} Accurate impact prediction requires historical changes, synthetic perturbations, or expert labels.
+Many organizations lack clean requirement-to-code histories.
+  \item \textbf{Traceability noise.} Requirement-code links may be incomplete or wrong.
+Bad traceability can mislead both the GNN and the agents.
+  \item \textbf{LLM reliability.} LLM agents may produce persuasive but incorrect rationales.
+Retrieval, structured output, and guards reduce but do not eliminate this risk.
+  \item \textbf{Metric incompleteness.} Coupling and cohesion do not fully capture architecture quality.
+Operational constraints, team structure, data ownership, and compliance obligations must be modeled explicitly.
+  \item \textbf{Generalization.} Healthcare cases may differ from finance, manufacturing, or embedded systems.
+The graph schema is general, but utility functions and guards are domain-specific.
+  \item \textbf{Cost.} Large code embeddings and LLM negotiation loops may be expensive for very large systems.
+Caching, sampling, and incremental graph updates are required.
+\end{enumerate}
+
+\section{Threats to Validity}
+\label{sec:validity}
+
+We follow standard software engineering validity categories \cite{wohlin2012experimentation}.
+
+\subsection{Construct Validity}
+
+Architecture quality cannot be reduced to a single metric.
+MoJoFM, modularity, coupling, cohesion, semantic coherence, smell reduction, and expert acceptance capture different views.
+To reduce construct bias, the evaluation reports multiple metric families and explicitly connects them to stakeholder decisions.
+The architecture-impact cost in Equation~\ref{eq:arch-cost} requires validation against post-change metric deltas and independent expert judgments before deployment.
+
+\subsection{Internal Validity}
+
+If DeepArchNegotiator outperforms baselines, the improvement may come from stronger prompts, more retrieved context, or better hyperparameter tuning rather than the GNN negotiation loop.
+Ablations are therefore essential: no GNN, no guard, no Nash, no traceability, no counterproposal, and no RAG\@.
+All variants use the same requirement scenarios and comparable model budgets.
+
+\subsection{External Validity}
+
+Open-source Java projects may not represent proprietary healthcare systems. BioArc-inspired scenarios may not cover all hospital workflows.
+To improve external validity, the evaluation includes multiple project domains, sizes, and programming languages, and clearly separates healthcare-specific guard rules from domain-independent architecture methods.
+
+\subsection{Reliability}
+
+LLM outputs are stochastic. The implementation fixes decoding parameters for utility scoring, averages critical scoring over multiple runs, caches retrieved contexts, and logs prompts, retrieved documents, graph states, and guard decisions.
+GNN training uses repeated seeds to report variance accurately.
+
+\subsection{Ethical and Safety Considerations}
+
+Healthcare architecture decisions can affect patient safety and privacy.
+DeepArchNegotiator is designed as a decision-support tool, not an autonomous authority. Final acceptance requires human review.
+The system does not ingest identifiable patient data unless appropriate governance, de-identification, access control, and legal authorization are in place.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented DeepArchNegotiator, a stakeholder-aware architecture refactoring framework that integrates semantic graph neural modularization with multi-agent requirements negotiation.
+The key idea is to make architecture impact a first-class negotiation variable.
+A GNN estimates how requirements and refactoring proposals affect coupling, cohesion, modularity, change impact, migration risk, and behavior risk.
+Stakeholder agents then negotiate over clinical value, technical feasibility, privacy, operations, regulatory constraints, and product value using guarded Nash bargaining.
+The result is not merely a cluster assignment or a text summary, but a refactoring-aware agreement: accepted requirements, module-boundary changes, ADRs, traceability, and test obligations.
+The framework is especially promising for healthcare systems such as the BioArc integration scenario, where clinically valuable features may create unsafe architecture if accepted in the wrong form.
+DeepArchNegotiator preserves stakeholder value by negotiating the architectural shape of accepted change.
+
+\appendix
+
+
+\section{Extended BioArc Guard Rules}
+\label{app:bioarc-guard}
+
+Table~\ref{tab:guard-rules} defines the BioArc guard rules used in the controlled case. In operational deployments, clinical, legal, and architecture experts refine the rule set before use.
+
+\begin{longtable}{p{2.2cm}p{10.8cm}}
+\caption{Guard rules for BioArc integration.}\label{tab:guard-rules}\\
+\toprule
+Rule ID & Rule \\
+\midrule
+G-PRIV-01 & No module outside the Consent Boundary may transfer clinical encounter data without an active consent reference.
+\\
+G-PRIV-02 & Telemedicine services may not directly read or write medication tables;
+all access must occur through a versioned API or approved event contract.
+\\
+G-AUD-01 & Every cross-system clinical data access must emit an audit event containing user, patient, purpose, timestamp, and consent reference.
+\\
+G-SAFE-01 & Tier 1 life-threatening DDI checks must block prescription signing if a known lethal interaction is detected.
+\\
+G-SAFE-02 & Vendor/API outage may not disable Tier 1 local DDI checks.
+\\
+G-ARCH-01 & Patient identity matching must be performed only by the Patient Identity Gateway.
+\\
+G-ARCH-02 & Shared database access is prohibited unless explicitly approved by an ADR and covered by contract tests.
+\\
+G-BEH-01 & Refactoring may not remove existing prescription, consent, or audit behavior unless the corresponding requirement is reopened and renegotiated.
+\\
+\bottomrule
+\end{longtable}
+
+\section{Reference Repository Structure}
+\label{app:repo}
+
+Listing~\ref{lst:repo-structure} gives the reference repository layout for replication artifacts.
+
+\begin{lstlisting}[caption={Reference repository structure.},label={lst:repo-structure}]
+deep-arch-negotiator/
+  data/
+    requirements/
+    code_snapshots/
+    traces/
+    constraints/
+  src/
+    parsers/
+    embeddings/
+    graph_builder/
+    gnn_oracle/
+    agents/
+    negotiation/
+    guards/
+    artifacts/
+  experiments/
+    open_source_systems/
+    bioarc_case/
+    ablations/
+  figures/
+  paper/
+    DeepArchNegotiator.tex
+    deep_arch_negotiator_refs.bib
+    generate_deep_arch_figures.py
+\end{lstlisting}
+
+\section{Experimental Configuration and Reproducibility Checklist}
+\label{app:checklist}
+
+The reproducibility checklist below separates the simulated configuration used in this manuscript from metadata that empirical replications must record for each run.
+
+\begin{enumerate}[leftmargin=2em]
+  \item Exact codebase versions and commit hashes: recorded for each replication run, including the selected Tomcat and Hadoop benchmark snapshots.
+  \item Exact requirement scenarios and expert labels: BioArc integration trace, scoring rubric, and expert-label collection protocol.
+  \item GNN architecture, hidden size, heads, layers, learning rate, and seeds: Heterogeneous GAT, 128 hidden size, 4 heads, 3 layers, LR 1e-4, seeds [42, 43, 44].
+  \item Embedding models used for code and requirements: CodeBERT (code), PubMedBERT (clinical), ParsBERT (Persian language requirements).
+  \item Utility weights, disagreement points, and guard thresholds: Disagreement points $d_j = 0.2$, guard threshold $\tau_G = 0.95$.
+  \item Baseline implementations and parameter settings: DeepModule-compatible configuration and MedNegotiator-compatible agent configuration, with model snapshots logged at run time.
+  \item Runtime environment, hardware, and model API versions: Ubuntu 22.04, 2x NVIDIA RTX 3090, PyTorch version, and exact model/API snapshots logged at run time.
+  \item Human evaluation protocol, participant count, consent procedure, and rating rubric: 12-person expert panel, 5-point Likert scale, and ethics/consent metadata recorded before data collection.
+  \item Statistical tests, effect sizes, and confidence intervals: Wilcoxon signed-rank, significance threshold $\alpha=0.05$, Cliff's Delta $d$, and 95\% CIs.
+  \item Data availability and licensing statement: replication package location, persistent identifier, and license recorded upon release.
+\end{enumerate}
+
+\bibliographystyle{elsarticle-num}
+\bibliography{bibliography}
+
+\end{document}

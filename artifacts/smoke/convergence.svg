@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="420"><rect width="100%" height="100%" fill="white"/><text x="410.0" y="28" text-anchor="middle" font-size="18" font-family="Arial">Negotiation convergence</text><line x1="70" y1="365" x2="670" y2="365" stroke="#333"/><line x1="70" y1="50" x2="70" y2="365" stroke="#333"/>
+<polyline fill="none" stroke="#4F81BD" stroke-width="3" points="70.0,56.3 145.0,62.6 220.0,78.3 295.0,87.8 370.0,94.1 445.0,100.4 520.0,103.6 595.0,106.7 670.0,106.7"/>
+<rect x="690" y="50" width="12" height="12" fill="#4F81BD"/><text x="708" y="61" font-size="12" font-family="Arial">Clinical utility</text>
+<polyline fill="none" stroke="#C0504D" stroke-width="3" points="70.0,286.2 145.0,267.4 220.0,226.4 295.0,188.6 370.0,160.2 445.0,147.7 520.0,141.4 595.0,135.1 670.0,135.1"/>
+<rect x="690" y="74" width="12" height="12" fill="#C0504D"/><text x="708" y="85" font-size="12" font-family="Arial">Technical utility</text>
+<polyline fill="none" stroke="#9BBB59" stroke-width="3" points="70.0,346.1 145.0,333.5 220.0,308.3 295.0,283.1 370.0,264.2 445.0,254.8 520.0,248.4 595.0,245.3 670.0,245.3"/>
+<rect x="690" y="98" width="12" height="12" fill="#9BBB59"/><text x="708" y="109" font-size="12" font-family="Arial">Nash product</text>
+</svg>

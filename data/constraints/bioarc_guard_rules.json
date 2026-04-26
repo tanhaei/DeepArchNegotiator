@@ -1,0 +1,42 @@
+[
+  {
+    "id": "G-PRIV-01",
+    "text": "No module outside the Consent Boundary may transfer clinical encounter data without an active consent reference.",
+    "category": "privacy"
+  },
+  {
+    "id": "G-PRIV-02",
+    "text": "Telemedicine services may not directly read or write medication tables; all access must occur through a versioned API or approved event contract.",
+    "category": "privacy"
+  },
+  {
+    "id": "G-AUD-01",
+    "text": "Every cross-system clinical data access must emit an audit event containing user, patient, purpose, timestamp, and consent reference.",
+    "category": "audit"
+  },
+  {
+    "id": "G-SAFE-01",
+    "text": "Tier 1 life-threatening DDI checks must block prescription signing if a known lethal interaction is detected.",
+    "category": "safety"
+  },
+  {
+    "id": "G-SAFE-02",
+    "text": "Vendor/API outage may not disable Tier 1 local DDI checks.",
+    "category": "safety"
+  },
+  {
+    "id": "G-ARCH-01",
+    "text": "Patient identity matching must be performed only by the Patient Identity Gateway.",
+    "category": "architecture"
+  },
+  {
+    "id": "G-ARCH-02",
+    "text": "Shared database access is prohibited unless explicitly approved by an ADR and covered by contract tests.",
+    "category": "architecture"
+  },
+  {
+    "id": "G-BEH-01",
+    "text": "Refactoring may not remove existing prescription, consent, or audit behavior unless renegotiated.",
+    "category": "behavior"
+  }
+]

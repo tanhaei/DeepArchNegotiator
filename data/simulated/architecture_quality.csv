@@ -1,0 +1,7 @@
+system,mojofm,coupling,cohesion,semantic_coherence,smell_reduction
+ACDC,65.4,0.45,0.3,0.4,12%
+WCA,68.2,0.42,0.35,0.42,15%
+Bunch,72.5,0.38,0.45,0.45,20%
+NSGA-II,75.1,0.35,0.48,0.48,25%
+DeepModule,82.3,0.28,0.55,0.65,38%
+DeepArchNegotiator,81.5,0.25,0.52,0.68,45%

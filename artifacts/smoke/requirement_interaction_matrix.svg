@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="600"><rect width="100%" height="100%" fill="white"/><text x="360.0" y="28" text-anchor="middle" font-size="18" font-family="Arial">Requirement interaction matrix</text>
+<text x="145" y="108.0" text-anchor="end" font-size="12" font-family="Arial">REQ-Identity</text>
+<text x="145" y="184.0" text-anchor="end" font-size="12" font-family="Arial">REQ-Consent</text>
+<text x="145" y="260.0" text-anchor="end" font-size="12" font-family="Arial">REQ-DDI</text>
+<text x="145" y="336.0" text-anchor="end" font-size="12" font-family="Arial">REQ-Telemed</text>
+<text x="145" y="412.0" text-anchor="end" font-size="12" font-family="Arial">REQ-Billing</text>
+<rect x="155" y="70" width="76" height="76" fill="#ff0000" stroke="white"/><text x="193.0" y="108.0" text-anchor="middle" font-size="12" font-family="Arial">1.00</text>
+<rect x="231" y="70" width="76" height="76" fill="#ff2626" stroke="white"/><text x="269.0" y="108.0" text-anchor="middle" font-size="12" font-family="Arial">0.85</text>
+<rect x="307" y="70" width="76" height="76" fill="#ffb2b2" stroke="white"/><text x="345.0" y="108.0" text-anchor="middle" font-size="12" font-family="Arial">0.30</text>
+<rect x="383" y="70" width="76" height="76" fill="#ff3f3f" stroke="white"/><text x="421.0" y="108.0" text-anchor="middle" font-size="12" font-family="Arial">0.75</text>
+<rect x="459" y="70" width="76" height="76" fill="#ff9999" stroke="white"/><text x="497.0" y="108.0" text-anchor="middle" font-size="12" font-family="Arial">0.40</text>
+<rect x="155" y="146" width="76" height="76" fill="#ff2626" stroke="white"/><text x="193.0" y="184.0" text-anchor="middle" font-size="12" font-family="Arial">0.85</text>
+<rect x="231" y="146" width="76" height="76" fill="#ff0000" stroke="white"/><text x="269.0" y="184.0" text-anchor="middle" font-size="12" font-family="Arial">1.00</text>
+<rect x="307" y="146" width="76" height="76" fill="#ffbfbf" stroke="white"/><text x="345.0" y="184.0" text-anchor="middle" font-size="12" font-family="Arial">0.25</text>
+<rect x="383" y="146" width="76" height="76" fill="#ff6666" stroke="white"/><text x="421.0" y="184.0" text-anchor="middle" font-size="12" font-family="Arial">0.60</text>
+<rect x="459" y="146" width="76" height="76" fill="#ffe5e5" stroke="white"/><text x="497.0" y="184.0" text-anchor="middle" font-size="12" font-family="Arial">0.10</text>
+<rect x="155" y="222" width="76" height="76" fill="#ffb2b2" stroke="white"/><text x="193.0" y="260.0" text-anchor="middle" font-size="12" font-family="Arial">0.30</text>
+<rect x="231" y="222" width="76" height="76" fill="#ffbfbf" stroke="white"/><text x="269.0" y="260.0" text-anchor="middle" font-size="12" font-family="Arial">0.25</text>
+<rect x="307" y="222" width="76" height="76" fill="#ff0000" stroke="white"/><text x="345.0" y="260.0" text-anchor="middle" font-size="12" font-family="Arial">1.00</text>
+<rect x="383" y="222" width="76" height="76" fill="#ff7f7f" stroke="white"/><text x="421.0" y="260.0" text-anchor="middle" font-size="12" font-family="Arial">0.50</text>
+<rect x="459" y="222" width="76" height="76" fill="#d8d8ff" stroke="white"/><text x="497.0" y="260.0" text-anchor="middle" font-size="12" font-family="Arial">-0.15</text>
+<rect x="155" y="298" width="76" height="76" fill="#ff3f3f" stroke="white"/><text x="193.0" y="336.0" text-anchor="middle" font-size="12" font-family="Arial">0.75</text>
+<rect x="231" y="298" width="76" height="76" fill="#ff6666" stroke="white"/><text x="269.0" y="336.0" text-anchor="middle" font-size="12" font-family="Arial">0.60</text>
+<rect x="307" y="298" width="76" height="76" fill="#ff7f7f" stroke="white"/><text x="345.0" y="336.0" text-anchor="middle" font-size="12" font-family="Arial">0.50</text>
+<rect x="383" y="298" width="76" height="76" fill="#ff0000" stroke="white"/><text x="421.0" y="336.0" text-anchor="middle" font-size="12" font-family="Arial">1.00</text>
+<rect x="459" y="298" width="76" height="76" fill="#ff8c8c" stroke="white"/><text x="497.0" y="336.0" text-anchor="middle" font-size="12" font-family="Arial">0.45</text>
+<rect x="155" y="374" width="76" height="76" fill="#ff9999" stroke="white"/><text x="193.0" y="412.0" text-anchor="middle" font-size="12" font-family="Arial">0.40</text>
+<rect x="231" y="374" width="76" height="76" fill="#ffe5e5" stroke="white"/><text x="269.0" y="412.0" text-anchor="middle" font-size="12" font-family="Arial">0.10</text>
+<rect x="307" y="374" width="76" height="76" fill="#d8d8ff" stroke="white"/><text x="345.0" y="412.0" text-anchor="middle" font-size="12" font-family="Arial">-0.15</text>
+<rect x="383" y="374" width="76" height="76" fill="#ff8c8c" stroke="white"/><text x="421.0" y="412.0" text-anchor="middle" font-size="12" font-family="Arial">0.45</text>
+<rect x="459" y="374" width="76" height="76" fill="#ff0000" stroke="white"/><text x="497.0" y="412.0" text-anchor="middle" font-size="12" font-family="Arial">1.00</text>
+</svg>

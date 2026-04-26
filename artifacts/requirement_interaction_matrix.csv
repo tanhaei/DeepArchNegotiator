@@ -1,0 +1,6 @@
+requirement,REQ-Identity,REQ-Consent,REQ-DDI,REQ-Telemed,REQ-Billing
+REQ-Identity,1.0,0.85,0.3,0.75,0.4
+REQ-Consent,0.85,1.0,0.25,0.6,0.1
+REQ-DDI,0.3,0.25,1.0,0.5,-0.15
+REQ-Telemed,0.75,0.6,0.5,1.0,0.45
+REQ-Billing,0.4,0.1,-0.15,0.45,1.0

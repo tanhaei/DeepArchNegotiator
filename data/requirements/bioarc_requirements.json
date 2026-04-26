@@ -1,0 +1,98 @@
+[
+  {
+    "id": "REQ-BIO-001",
+    "text": "Identify patients through a shared patient identity gateway before reading or writing clinical records.",
+    "priority": "Must-have",
+    "primary_risk": "Identity coupling",
+    "clinical_value": 0.94,
+    "affected_modules": [
+      "IdentityService",
+      "TeleConsultationService",
+      "PatientIdentityGateway"
+    ]
+  },
+  {
+    "id": "REQ-BIO-002",
+    "text": "Enforce explicit consent before encounter summaries are transferred to BioArc.",
+    "priority": "Must-have",
+    "primary_risk": "Privacy boundary",
+    "clinical_value": 0.96,
+    "affected_modules": [
+      "ConsentModule",
+      "TeleConsultationService",
+      "AuditLog"
+    ]
+  },
+  {
+    "id": "REQ-BIO-003",
+    "text": "Perform Tier 1 DDI checks synchronously for life-threatening pairs.",
+    "priority": "Must-have",
+    "primary_risk": "Safety-latency",
+    "clinical_value": 0.98,
+    "affected_modules": [
+      "PrescriptionWorkflow",
+      "TieredDDIService",
+      "MedicationRepository"
+    ]
+  },
+  {
+    "id": "REQ-BIO-004",
+    "text": "Evaluate Tier 2 medication advisories asynchronously and route them to notification or pharmacist queues.",
+    "priority": "Performance",
+    "primary_risk": "Workflow disruption",
+    "clinical_value": 0.82,
+    "affected_modules": [
+      "TieredDDIService",
+      "NotificationQueue",
+      "PharmacistQueue"
+    ]
+  },
+  {
+    "id": "REQ-BIO-005",
+    "text": "Generate audit events for all cross-system access with user, patient, purpose, timestamp, and consent reference.",
+    "priority": "Must-have",
+    "primary_risk": "Audit volume",
+    "clinical_value": 0.91,
+    "affected_modules": [
+      "AuditLog",
+      "EventLayer",
+      "ConsentModule"
+    ]
+  },
+  {
+    "id": "REQ-BIO-006",
+    "text": "Appointment and billing data shall not directly access clinical medication tables.",
+    "priority": "Constraint",
+    "primary_risk": "Database coupling",
+    "clinical_value": 0.88,
+    "affected_modules": [
+      "AppointmentService",
+      "BillingService",
+      "MedicationRepository"
+    ]
+  },
+  {
+    "id": "REQ-BIO-007",
+    "text": "Write teleconsultation notes through a versioned API contract rather than shared database writes.",
+    "priority": "Must-have",
+    "primary_risk": "API evolution",
+    "clinical_value": 0.89,
+    "affected_modules": [
+      "TeleConsultationService",
+      "VersionedAPI",
+      "BioArcEHR"
+    ]
+  },
+  {
+    "id": "REQ-BIO-008",
+    "text": "Offline or vendor-failure DDI behavior shall preserve Tier 1 blocking while allowing Tier 2 soft-fail.",
+    "priority": "Must-have",
+    "primary_risk": "Availability/safety",
+    "clinical_value": 0.93,
+    "affected_modules": [
+      "TieredDDIService",
+      "LocalSafetyCache",
+      "VendorDDIAdapter"
+    ]
+  }
+]

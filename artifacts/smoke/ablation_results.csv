@@ -1,0 +1,7 @@
+variant,overall_success_score
+Full System,0.88
+No GNN,0.65
+No Nash,0.72
+No Guard,0.58
+No Trace,0.75
+LLM-only,0.55

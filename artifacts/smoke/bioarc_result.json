@@ -1,0 +1,200 @@
+{
+  "accepted": {
+    "id": "gateway_event",
+    "title": "Patient Identity Gateway + Consent Boundary + Event/API layer",
+    "pattern": "gateway_event",
+    "requirement_ids": [
+      "REQ-BIO-001",
+      "REQ-BIO-002",
+      "REQ-BIO-003",
+      "REQ-BIO-004",
+      "REQ-BIO-005",
+      "REQ-BIO-006",
+      "REQ-BIO-007",
+      "REQ-BIO-008"
+    ],
+    "clinical_value": 0.94,
+    "implementation_cost": 0.42,
+    "uses_identity_gateway": true,
+    "uses_consent_boundary": true,
+    "uses_event_api": true,
+    "uses_versioned_api": true,
+    "audit_events": true,
+    "direct_db_access": false,
+    "shared_db_access": false,
+    "synchronous_all_calls": false,
+    "tier1_local_blocking": true,
+    "tier2_async": true,
+    "removes_existing_behavior": false,
+    "migration_points": 2,
+    "required_tests": [
+      "contract tests",
+      "consent-bypass tests",
+      "DDI fault-injection tests",
+      "audit-completeness tests",
+      "migration rollback drills"
+    ]
+  },
+  "impact": {
+    "delta_coupling": 0.08,
+    "delta_cohesion_loss": 0.03,
+    "delta_modularity_loss": 0.04,
+    "delta_change_impact": 0.1,
+    "migration_risk": 0.2,
+    "behavior_risk": 0.05,
+    "latency_ms": 12,
+    "privacy_boundary_risk": 0.05,
+    "affected_modules": [
+      "PatientIdentityGateway",
+      "ConsentModule",
+      "EventLayer",
+      "AuditLog",
+      "TieredDDIService"
+    ],
+    "explanation": "Gateway/event design localizes identity, consent, audit, and DDI responsibilities.",
+    "architecture_cost": 0.075
+  },
+  "guard": {
+    "passed": true,
+    "hard_violation_count": 0,
+    "violations": []
+  },
+  "utilities": {
+    "clinical": 0.925,
+    "technical": 0.7367,
+    "security_privacy": 0.91,
+    "devops": 0.7857,
+    "regulatory": 0.95,
+    "product": 0.8624
+  },
+  "nash_score": 0.6569,
+  "adoption_rate": 0.85,
+  "alternatives": [
+    {
+      "id": "direct_db",
+      "title": "Direct shared database access",
+      "pattern": "direct_db",
+      "coupling_delta": 0.42,
+      "latency_ms": 40,
+      "privacy_boundary_risk": 0.88,
+      "architecture_cost": 0.373,
+      "guard_passed": false,
+      "hard_violations": 8,
+      "nash_score": 0.0,
+      "utilities": {
+        "clinical": 0.743,
+        "technical": 0.0,
+        "security_privacy": 0.0,
+        "devops": 0.4657,
+        "regulatory": 0.0,
+        "product": 0.2564
+      },
+      "reason": "Direct database access crosses medication, consent, audit, and identity boundaries."
+    },
+    {
+      "id": "sync_api",
+      "title": "All-synchronous versioned API integration",
+      "pattern": "sync_api",
+      "coupling_delta": 0.2,
+      "latency_ms": 120,
+      "privacy_boundary_risk": 0.18,
+      "architecture_cost": 0.176,
+      "guard_passed": true,
+      "hard_violations": 0,
+      "nash_score": 0.4568,
+      "utilities": {
+        "clinical": 0.798,
+        "technical": 0.5,
+        "security_privacy": 0.78,
+        "devops": 0.3771,
+        "regulatory": 0.95,
+        "product": 0.8572
+      },
+      "reason": "Synchronous API integration avoids shared tables but creates latency risk."
+    },
+    {
+      "id": "gateway_event",
+      "title": "Patient Identity Gateway + Consent Boundary + Event/API layer",
+      "pattern": "gateway_event",
+      "coupling_delta": 0.08,
+      "latency_ms": 12,
+      "privacy_boundary_risk": 0.05,
+      "architecture_cost": 0.075,
+      "guard_passed": true,
+      "hard_violations": 0,
+      "nash_score": 0.6569,
+      "utilities": {
+        "clinical": 0.925,
+        "technical": 0.7367,
+        "security_privacy": 0.91,
+        "devops": 0.7857,
+        "regulatory": 0.95,
+        "product": 0.8624
+      },
+      "reason": "Gateway/event design localizes identity, consent, audit, and DDI responsibilities."
+    },
+    {
+      "id": "strangler_adapter",
+      "title": "Strangler migration with interim adapter",
+      "pattern": "strangler_adapter",
+      "coupling_delta": 0.12,
+      "latency_ms": 22,
+      "privacy_boundary_risk": 0.07,
+      "architecture_cost": 0.123,
+      "guard_passed": true,
+      "hard_violations": 0,
+      "nash_score": 0.5619,
+      "utilities": {
+        "clinical": 0.856,
+        "technical": 0.5687,
+        "security_privacy": 0.89,
+        "devops": 0.6071,
+        "regulatory": 0.95,
+        "product": 0.818
+      },
+      "reason": "Strangler adapter is safe but carries higher migration complexity."
+    }
+  ],
+  "traceability": {
+    "REQ-BIO-001": [
+      "IdentityService",
+      "TeleConsultationService",
+      "PatientIdentityGateway"
+    ],
+    "REQ-BIO-002": [
+      "ConsentModule",
+      "TeleConsultationService",
+      "AuditLog"
+    ],
+    "REQ-BIO-003": [
+      "PrescriptionWorkflow",
+      "TieredDDIService",
+      "MedicationRepository"
+    ],
+    "REQ-BIO-004": [
+      "TieredDDIService",
+      "NotificationQueue",
+      "PharmacistQueue"
+    ],
+    "REQ-BIO-005": [
+      "AuditLog",
+      "EventLayer",
+      "ConsentModule"
+    ],
+    "REQ-BIO-006": [
+      "AppointmentService",
+      "BillingService",
+      "MedicationRepository"
+    ],
+    "REQ-BIO-007": [
+      "TeleConsultationService",
+      "VersionedAPI",
+      "BioArcEHR"
+    ],
+    "REQ-BIO-008": [
+      "TieredDDIService",
+      "LocalSafetyCache",
+      "VendorDDIAdapter"
+    ]
+  }
+}

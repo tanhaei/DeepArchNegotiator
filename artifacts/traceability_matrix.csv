@@ -1,0 +1,9 @@
+requirement_id,affected_modules,accepted_proposal,adr,tests
+REQ-BIO-001,IdentityService;TeleConsultationService;PatientIdentityGateway,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-002,ConsentModule;TeleConsultationService;AuditLog,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-003,PrescriptionWorkflow;TieredDDIService;MedicationRepository,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-004,TieredDDIService;NotificationQueue;PharmacistQueue,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-005,AuditLog;EventLayer;ConsentModule,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-006,AppointmentService;BillingService;MedicationRepository,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-007,TeleConsultationService;VersionedAPI;BioArcEHR,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills
+REQ-BIO-008,TieredDDIService;LocalSafetyCache;VendorDDIAdapter,gateway_event,ADR-BIOARC-042,contract tests;consent-bypass tests;DDI fault-injection tests;audit-completeness tests;migration rollback drills

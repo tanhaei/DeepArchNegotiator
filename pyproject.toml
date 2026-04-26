@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deep-arch-negotiator"
+version = "0.1.0"
+description = "Reference replication package for DeepArchNegotiator controlled simulations."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Mohammad Tanhaei"}]
+dependencies = []
+
+[project.scripts]
+deep-arch-negotiator = "deep_arch_negotiator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
