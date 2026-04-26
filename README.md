@@ -4,8 +4,6 @@ Reference GitHub repository for the paper **Stakeholder-Aware Software Architect
 
 This repo is an executable, deterministic replication package for the controlled BioArc experiments in the manuscript. It keeps the same concepts as the paper: a heterogeneous requirement-architecture-code graph, an architecture-impact oracle, multi-agent utilities, guarded Nash-style negotiation, Architecture Consistency Guard rules, ADR/test/migration artifacts, ablations, and impact-prediction metrics.
 
-> Scope: this is a lightweight reference implementation. It does not train a real GNN or call LLM APIs. The oracle is a transparent surrogate encoding the controlled-simulation values reported in the paper so the experimental protocol can be tested end-to-end.
-
 ## Main paper points captured in code
 
 - Architecture refactoring is modeled as a stakeholder negotiation problem, not just clustering.
